@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload Your File</title>
+  <style>
+    body {
+      background: #f5f7fa;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .logo {
+      width: 160px;
+      max-height: 100px;
+      margin-bottom: 20px;
+    }
+
+    .how-to-btn {
+      background-color: #2d8cff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .upload-label {
+      background-color: #27ae60;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    h2 {
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo SVG or image -->
+    <img src="{{ url_for('static', filename='yta.svg') }}" alt="Logo" class="logo" />
+
+    <!-- How to Use Button -->
+    <a href="https://docs.google.com/document/d/13R3wwBrTg773rhEE1MFx6w3H1lg4gg-GpiKx72tvrLg/edit?usp=sharing" target="_blank" class="how-to-btn">
+      📘 How to Use
+    </a>
+
+    <!-- File Upload Section -->
+    <h2>Upload a .zip File</h2>
+    <form method="POST" enctype="multipart/form-data">
+      <label for="file" class="upload-label">Upload .zip File</label>
+      <input type="file" id="file" name="file" onchange="this.form.submit();" />
+    </form>
+  </div>
+</body>
+</html>
