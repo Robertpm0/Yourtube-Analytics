@@ -1,6 +1,5 @@
 import concurrent.futures
 import multiprocessing
-import numpy as np
 import streamlit as st
 import sqlite3
 import requests
@@ -16,18 +15,15 @@ import streamlit_shadcn_ui as ui
 from datetime import datetime
 import zipfile
 from lxml import etree
-import io
-from git import Repo
-
+import os
 from langchain_experimental.agents import create_pandas_dataframe_agent
-
 from langchain.chat_models import ChatOpenAI
 # set in .sreamlit/secrets.toml
 st.set_page_config(layout="wide")
-API_KEY=st.secrets["ytv3_key"]
+API_KEY=st.secrets.get("ytv3_key","")  or os.getenv("ytv3_key")
 YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3/videos"
 
-OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "")# or os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "") or os.getenv("OPENROUTER_API_KEY")
 TEMP_ZIP_PATH = 'shared_data/uploaded.zip'  # Streamlit will read this
 
 
