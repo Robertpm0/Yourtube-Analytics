@@ -31,4 +31,4 @@ def open_streamlit():
     return redirect('http://localhost:8501', code=302)
 
 if __name__ == '__main__':
-    app.run(debug=False,port=10000)
+    app.run(host='0.0.0.0',debug=False,port=10000)
