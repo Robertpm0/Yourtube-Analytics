@@ -19,7 +19,7 @@ import os
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain.chat_models import ChatOpenAI
 # set in .sreamlit/secrets.toml
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 API_KEY=st.secrets.get("ytv3_key","")  or os.getenv("ytv3_key")
 YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3/videos"
 
@@ -431,7 +431,7 @@ if __name__=="__main__":
 
     # logo image
 
-    st.image("yta.svg")
+    st.image("static/yta.svg")
     # link to tutorial
     # ui.link_button(text="How to Use", url="https://docs.google.com/document/d/13R3wwBrTg773rhEE1MFx6w3H1lg4gg-GpiKx72tvrLg/edit?usp=sharing", key="link_btn")
 
@@ -448,7 +448,7 @@ if __name__=="__main__":
 
     # st.session_state["f"]=uploaded_file
     # doExperimental=st.checkbox("Get Watchtime (Experimental)")
-    if st.button("visualize",icon='👀'):
+    if st.button("visualise",icon='👀'):
         st.session_state["collected"]=False
         st.session_state["vidFrame"]=pd.DataFrame()
         st.session_state["vidFrame2"]=pd.DataFrame()
@@ -671,369 +671,431 @@ if __name__=="__main__":
 
                 history=history[history["Duration"]<90000]
                 h2Count=len(history)
-                history.to_csv("yo.csv",index=False)
+                # history.to_csv("yo.csv",index=False)
                 st.session_state.history=history
                 st.session_state.collected=True
     if st.session_state.collected==True:
-        # st.session_state["vidFrame"]["WatchDate"]=pd.to_datetime(st.session_state["vidFrame"]["WatchDate"]).dt.date
-        # st.session_state.history["Date"]=pd.to_datetime(history["Date"]).dt.date
-
+        tabControl=ui.tabs(["Watch History","Comments","Subsctripions & Playlists","AI"])
+        view_mode = st.sidebar.radio("Group videos watched by:", ["Month", "Year"])
         st.sidebar.subheader("Adjustments")
         top_n = st.sidebar.slider("Select number of top values to display:", min_value=1, max_value=20, value=10)
+        
         min_date=st.session_state.history["Date"].min()
         max_date=st.session_state.history["Date"].max()
+
         start_date, end_date = st.sidebar.date_input(
-    "Select date range:",
-    [min_date, max_date],
-    min_value=min_date,
-    max_value=max_date
-)
-        view_mode = st.sidebar.radio("Group videos watched by:", ["Month", "Year"])
 
-# top videos watched
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        df=df[(df['isAd']==False) & (df["isPost"]==False)]
-        video_counts = (
-    df.groupby(["Key", "Title"])
-    .size()
-    .reset_index(name="watch_count")
-    .sort_values(by="watch_count", ascending=False)
-    .head(top_n)
-)
-        st. markdown("---")
-        st.header("Watch History")
-        st.subheader(f"Top {top_n} Videos Watched")
-        st.bar_chart(video_counts.set_index("Title")["watch_count"],color="#4AB7FF",y_label="Times Watched",x_label="Video Name")
+            "Select date range:",
+            [min_date, max_date],
+            min_value=min_date,
+            max_value=max_date
+        )
+        # st.session_state["vidFrame"]["WatchDate"]=pd.to_datetime(st.session_state["vidFrame"]["WatchDate"]).dt.date
+        # st.session_state.history["Date"]=pd.to_datetime(history["Date"]).dt.date
+        firstRow=st.columns(2)
+        if tabControl=="Watch History":
+            st. markdown("---")
+            st.header("Watch History")
+
+            # with firstRow[0]:
+            with st.container(border=True):
 
 
 
-# top ads watched 
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        df=df[df['isAd']==True]
-        print(df.head())
-        df.to_csv("adscsv.csv",index=False)
-        video_counts = (
-    df.groupby(["Key", "Title"])
-    .size()
-    .reset_index(name="watch_count")
-    .sort_values(by="watch_count", ascending=False)
-    .head(top_n)
-)
-
-        st.subheader(f"Top {top_n} Ads Watched")
-        st.bar_chart(video_counts.set_index("Title")["watch_count"],color="#E97D62",x_label="Ad Name",y_label="Times Watched")
-
-# top channels watched
-
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        df=df[(df['isAd']==False) & (df["isPost"]==False)]
-        video_counts = (
-    df.groupby(["Channel"])
-    .size()
-    .reset_index(name="watch_count")
-    .sort_values(by="watch_count", ascending=False)
-    .head(top_n)
-)
-
-        st.subheader(f"Top {top_n} Channels Watched")
-        st.bar_chart(video_counts.set_index("Channel")["watch_count"],color="#77B150",y_label="Times Watched",x_label="Channel Name")
-
-
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-
-        df["Date"]=pd.to_datetime(df["Date"])
-        print(df["Date"])
-        df=df[df["isPost"]==False]
-        ui.metric_card("Videos Watched in Selected Time Period" ,f"{len(df)}")
-        # --- Group and Aggregate ---
-        st.subheader(f"Videos Watched per {view_mode} (Videos vs Ads)")
-        if view_mode == "Month":
-            df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-            watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
-            watch_counts = watch_counts.sort_values('month')
-            print(watch_counts)
-            st.bar_chart(watch_counts.set_index('month'),y='count',color='isAd')  # can also use .bar_chart()
-        else:
-            df['year'] = df['Date'].dt.year
-            watch_counts = df.groupby(['year','isAd']).size().reset_index(name='count')
-            st.bar_chart(watch_counts.set_index('year'),y='count',color='isAd')
-
-        # df=df[df["isPost"]==False]
-        # ui.metric_card("Videos Watched in Selected Time Period" ,f"{len(df)}")
-        # ui.metric_card()
+        # top videos watched
+                df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+                df=df[(df['isAd']==False) & (df["isPost"]==False)]
+                video_counts = (
+            df.groupby(["Key", "Title"])
+            .size()
+            .reset_index(name="watch_count")
+            .sort_values(by="watch_count", ascending=False)
+            .head(top_n)
+        )
+                st.subheader(f"Top {top_n} Videos Watched")
+                st.bar_chart(video_counts.set_index("Title")["watch_count"],color="#4AB7FF",y_label="Times Watched",x_label="Video Name")
 
 
 
+    # top ads watched 
+            # with firstRow[1]:
+            with st.container(border=True):
+                df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+                df=df[df['isAd']==True]
+                # print(df.head())
+                # df.to_csv("adscsv.csv",index=False)
+                video_counts = (
+            df.groupby(["Key", "Title"])
+            .size()
+            .reset_index(name="watch_count")
+            .sort_values(by="watch_count", ascending=False)
+            .head(top_n)
+        )
 
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        # df.to_csv("savedHistyo.csv",index=False)
-        df["Date"]=pd.to_datetime(df["Date"])
-        timeWatched=0
-        isShort=[]
-        for t in df["Duration"]:
-            if t!=0 and t<55:
-                isShort.append(True)
-            else:
-                isShort.append(False)
-            timeWatched+=t
-        df['isShort']=isShort
-        df=df[df['isAd']==False]
-        st.subheader(f"Videos Watched per {view_mode} (Normal Vs Shorts)")
-        if view_mode == "Month":
-            df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-            watch_counts = df.groupby(['month','isShort']).size().reset_index(name='count')
-            watch_counts = watch_counts.sort_values('month')
-            print(watch_counts)
-            st.bar_chart(watch_counts.set_index('month'),y='count',color='isShort')  # can also use .bar_chart()
-        else:
-            df['year'] = df['Date'].dt.year
-            watch_counts = df.groupby(['year','isShort']).size().reset_index(name='count')
-            st.bar_chart(watch_counts.set_index('year'),y='count',color='isShort')
+                st.subheader(f"Top {top_n} Ads Watched")
+                st.bar_chart(video_counts.set_index("Title")["watch_count"],color="#E97D62",x_label="Ad Name",y_label="Times Watched")
 
+        # top channels watched
 
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        # df.to_csv("savedHistyo.csv",index=False)
-        df["Date"]=pd.to_datetime(df["Date"])
-        timeWatched=0
-        isShort=[]
-        for t in df["Duration"]:
-            if t!=0 and t<55:
-                isShort.append(True)
-            else:
-                isShort.append(False)
-            timeWatched+=t
-        d,h,m,s,totHours=convert_seconds(timeWatched)
-        if doExperimental==True:
-            st.subheader(f"Total Duration of Videos Watched from {start_date} to {end_date}")
-            c1,c2,c3,c4=st.columns(4)
-            with c1:
-                # st.metric("Days",d)
-                ui.metric_card("Days",d)
-            with c2:
-                # st.metric("Hours",h)
-                ui.metric_card("Hours",h)
+                df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+                df=df[(df['isAd']==False) & (df["isPost"]==False)]
+                video_counts = (
+            df.groupby(["Channel"])
+            .size()
+            .reset_index(name="watch_count")
+            .sort_values(by="watch_count", ascending=False)
+            .head(top_n)
+        )
+            with st.container(border=True):
 
-            with c3:
-                # st.metric("Minutes",m)
-                ui.metric_card("Minutes",m)
-
-            with c4:
-                # st.metric("Seconds",s)
-                ui.metric_card("Seconds",s)
+                st.subheader(f"Top {top_n} Channels Watched")
+                st.bar_chart(video_counts.set_index("Channel")["watch_count"],color="#77B150",y_label="Times Watched",x_label="Channel Name")
 
 
-        
+            df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
 
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            df["Date"]=pd.to_datetime(df["Date"])
+            print(df["Date"])
+            df=df[df["isPost"]==False]
+            ui.metric_card("Videos Watched in Selected Time Period" ,f"{len(df)}")
+            # --- Group and Aggregate ---
+            with st.container(border=True):
 
-        df["Date"]=pd.to_datetime(df["Date"])
-        print(df["Date"])
-        df=df[(df['isAd']==False) & (df["isPost"]==False)]
-        if doExperimental==True:
-        # --- Group and Aggregate ---
-            st.subheader(f"Total Hours watched Per {view_mode} (Shorts + regular)")
+                st.subheader(f"Videos Watched per {view_mode} (Videos vs Ads)")
+                df["Keys"]=["Is Advertisement" if x==True else "Not Advertisement" for x in df["isAd"].values]
+                if view_mode == "Month":
+                    df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                    watch_counts = df.groupby(['month','Keys']).size().reset_index(name='count')
+                    watch_counts = watch_counts.sort_values('month')
+                    print(watch_counts)
+                    st.bar_chart(watch_counts.set_index('month'),y='count',color='Keys')  # can also use .bar_chart()
+                else:
+                    df['year'] = df['Date'].dt.year
+                    watch_counts = df.groupby(['year','Keys']).size().reset_index(name='count')
+                    st.bar_chart(watch_counts.set_index('year'),y='count',color='Keys')
 
-            if view_mode == "Month":
-                df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-                # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
-                # watch_counts = watch_counts.sort_values('month')
-                watch_time = (
-        df.groupby('month')['Duration']
-        .sum()
-        .rename("watchTotal")
-    )
-                print(watch_time)
-                st.bar_chart((watch_time/3600),color="#C054FA")  # can also use .bar_chart()
-            else:
-                df['year'] = df['Date'].dt.year
-                # df['year'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-                # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
-                # watch_counts = watch_counts.sort_values('month')
-                watch_time = (
-        df.groupby('year')['Duration']
-        .sum()
-        .rename("watchTotal")
-    )
-                print(watch_counts)
-                st.bar_chart((watch_time/3600),color="#C054FA")  # can also use .bar_chart()
+                # df=df[df["isPost"]==False]
+                # ui.metric_card("Videos Watched in Selected Time Period" ,f"{len(df)}")
+                # ui.metric_card()
 
 
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        # df.to_csv("savedHistyo.csv",index=False)
-        df["Date"]=pd.to_datetime(df["Date"])
-        timeWatched=0
-        isShort=[]
-        for t in df["Duration"]:
-            if t!=0 and t<55:
-                isShort.append(True)
-            else:
-                isShort.append(False)
-            timeWatched+=t
-        df['isShort']=isShort
 
-        df=df[(df['isAd']==False) & (df["isPost"]==False)]
 
-        # --- Group and Aggregate ---
-        if doExperimental==True:
-            st.subheader(f"Hours watched Per {view_mode} SHORTS ONLY")
+            df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            # df.to_csv("savedHistyo.csv",index=False)
+            with st.container(border=True):
 
-            if view_mode == "Month":
-                df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-                # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
-                # watch_counts = watch_counts.sort_values('month')
-                watch_time = (
-        df[df['isShort']==True].groupby('month')['Duration']
-        .sum()
-        .rename("watchTotal")
-    )
-                print(watch_time)
-                st.bar_chart((watch_time/3600),color="#54FAE9")  # can also use .bar_chart()
-            else:
-                df['year'] = df['Date'].dt.year
-                # df['year'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-                # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
-                # watch_counts = watch_counts.sort_values('month')
-                watch_time = (
-        df[df['isShort']==True].groupby('year')['Duration']
-        .sum()
-        .rename("watchTotal")
-    )
-                print(watch_counts)
-                st.bar_chart((watch_time/3600),color="#54FAE9")  # can also use .bar_chart()
+                df["Date"]=pd.to_datetime(df["Date"])
+                timeWatched=0
+                isShort=[]
+                for t in df["Duration"]:
+                    if t!=0 and t<55:
+                        isShort.append(True)
+                    else:
+                        isShort.append(False)
+                    timeWatched+=t
+                df['isShort']=isShort
+                df=df[df['isAd']==False]
+                df["Keys"]=["Is a Short" if x==True else "Not a Short" for x in df["isShort"].values]
 
-        df2=df.copy()
-        st.header("Comments")
-        df = st.session_state.comments[(st.session_state.comments["Date"].dt.date >= pd.to_datetime(start_date).date()) & (st.session_state.comments["Date"].dt.date <= pd.to_datetime(end_date).date())]
-        compCols=st.columns(2)
-        rate=(len(df)/len(df2))*100
-        per=100
-        if rate <1:
-            rate = (len(df)/len(df2))*1000
-            per=1000
-        if rate <1:
-            rate = (len(df)/len(df2))*10000
-            per=10000
-        with compCols[0]:
-            ui.metric_card("Total Comments Left",f"{len(df)}")
-        with compCols[1]:
-            ui.metric_card("Comment Frequency",f"{int(rate)} comments per {per} videos")
-        st.subheader(f"Comments left per {view_mode}")
-        # df = st.session_state.comments[(st.session_state.comments["Date"].dt.date >= pd.to_datetime(start_date).date()) & (st.session_state.comments["Date"].dt.date <= pd.to_datetime(end_date).date())]
-        df["Date"]=pd.to_datetime(df["Date"])
-        if view_mode == "Month":
-            df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-            watch_counts = df.groupby(['month']).size().reset_index(name='count')
-            watch_counts = watch_counts.sort_values('month')
-            print(watch_counts)
-            st.bar_chart(watch_counts.set_index('month'),color="#61256F")  # can also use .bar_chart() 
-        else:
-            df['year'] = df['Date'].dt.year
-            watch_counts = df.groupby(['year']).size().reset_index(name='count')
-            st.bar_chart(watch_counts.set_index('year'),color="#61256F")
+                st.subheader(f"Videos Watched per {view_mode} (Normal Vs Shorts)")
+                if view_mode == "Month":
+                    df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                    watch_counts = df.groupby(['month','Keys']).size().reset_index(name='count')
+                    watch_counts = watch_counts.sort_values('month')
+                    print(watch_counts)
+                    st.bar_chart(watch_counts.set_index('month'),y='count',color='Keys')  # can also use .bar_chart()
+                else:
+                    df['year'] = df['Date'].dt.year
+                    watch_counts = df.groupby(['year','Keys']).size().reset_index(name='count')
+                    st.bar_chart(watch_counts.set_index('year'),y='count',color='Keys')
 
-        def extract_text(entry):
-            try:
-                data = ast.literal_eval(entry)  # Safely convert string to dict
-                return data.get("text", "")  # Remove asterisks
-            except:
-                return ""
 
-        df['clean_text'] = df['Comment Text'].apply(extract_text)
-        st.subheader('Comments Word Cloud')
-        # Step 2: Create a word cloud
-        all_text = ' '.join(df['clean_text'].dropna())
-        wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_text)
+            df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            # df.to_csv("savedHistyo.csv",index=False)
+            df["Date"]=pd.to_datetime(df["Date"])
+            timeWatched=0
+            isShort=[]
+            for t in df["Duration"]:
+                if t!=0 and t<55:
+                    isShort.append(True)
+                else:
+                    isShort.append(False)
+                timeWatched+=t
+            d,h,m,s,totHours=convert_seconds(timeWatched)
+            with st.container(border=True):
+                if doExperimental==True:
+                    st.subheader(f"Total Duration of Videos Watched from {start_date} to {end_date}")
+                    c1,c2,c3,c4=st.columns(4)
+                    with c1:
+                        # st.metric("Days",d)
+                        ui.metric_card("Days",d)
+                    with c2:
+                        # st.metric("Hours",h)
+                        ui.metric_card("Hours",h)
 
-        plt.figure(figsize=(10, 5))
-        plt.imshow(wordcloud, interpolation='bilinear')
-        plt.axis('off')
-        plt.title("Word Cloud of Comments")
-        st.pyplot(plt.gcf())
-        # plt.show()
+                    with c3:
+                        # st.metric("Minutes",m)
+                        ui.metric_card("Minutes",m)
 
-        # Step 3: Sentiment analysis using TextBlob
-        def get_sentiment(text):
-            return TextBlob(text).sentiment.polarity  # Range: -1 (negative) to 1 (positive)
-        st.subheader(f'Average Sentiment of Comments per {view_mode}')
-        st.caption("Negative Sentiment indicate meaner comments, positive indicates not as mean comments")
-        df['sentiment'] = df['clean_text'].apply(get_sentiment)
-        if view_mode == "Month":
-            df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-            watch_counts = df.groupby(['month'])['sentiment'].mean().reset_index(name='count')
-            watch_counts = watch_counts.sort_values('month')
-            # print(watch_counts)
-            st.bar_chart(watch_counts.set_index('month'),color="#C4ED3B")  # can also use .bar_chart() 
-        else:
-            df['year'] = df['Date'].dt.year
-            watch_counts = df.groupby(['year'])['sentiment'].mean().reset_index(name='count')
-            st.bar_chart(watch_counts.set_index('year'),color="#C4ED3B")
+                    with c4:
+                        # st.metric("Seconds",s)
+                        ui.metric_card("Seconds",s)
 
-        # st.subheader(f"Total Number of Subscriptions: {len(st.session_state['subs'])}")
-        st.header("Playlists & Subscriptions")
-        stats=st.columns(3)
-        with stats[0]:
-            ui.metric_card("Total Number of Subscriptions",f"{len(st.session_state['subs'])}")
-        with stats[1]:
-            ui.metric_card(f"Total Number of Playlists", f"{(len(st.session_state['Playlists']))}")
-        # st.subheader(f"Total Number of Playlists {(len(st.session_state['Playlists']))}")
-        with stats[2]:
-            ui.metric_card(f"Total Videos in All Playlists",f"{len(st.session_state['all_lists'])}")
-        # st.subheader(f'Total Videos in All Playlists {len(st.session_state["all_lists"])}')
-        lengths=[]
-        i=0
 
-        for x in st.session_state['list_names']:
-            # if x ==st.session_state['list_names'][0]:
-            #     i+=1
-            #     continue
-            # else:
-            lengths.append(len(st.session_state['Playlists'][i]))
-            i+=1
-        st.subheader("Videos per Playlist")
-        st.session_state['list_names']=[g.replace("Takeout/YouTube and YouTube Music/playlists/","") for g in st.session_state['list_names']]
-        st.bar_chart(pd.DataFrame({"Playlist":st.session_state['list_names'],'Number of Videos':lengths}),x='Playlist',y='Number of Videos',color="#4DD799")
-        df=st.session_state['all_lists']
-        # df = st.session_state.history[((pd.to_datetime(stjj.session_state['all_lists']["Playlist Video Creation Timestamp"])).dt.to_period('M').dt.to_timestamp() >= pd.to_datetime(start_date).date()) & (pd.to_datetime(st.session_state['all_lists']["Playlist Video Creation Timestamp"]) <= pd.to_datetime(end_date).date())]
+            
+            with st.container(border=True):
 
-        df["Date"]=pd.to_datetime(df['Playlist Video Creation Timestamp'])
-        df["Date2"]=df["Date"].dt.date
-        df=df[(df["Date2"]>=pd.to_datetime(start_date).date()) & (df["Date2"]<=pd.to_datetime(end_date).date())]
-        # print(df["month"])
+                df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
 
-        st.subheader("Videos Added to Playlist per Month")
-        if view_mode == "Month":
-            df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
-            watch_counts = df.groupby(['month']).size().reset_index(name='count')
-            watch_counts = watch_counts.sort_values('month')
-            # print(watch_counts)
-            st.bar_chart(watch_counts.set_index('month'),color="#FF1988")  # can also use .bar_chart() 
-        else:
-            df['year'] = df['Date'].dt.year
-            watch_counts = df.groupby(['year']).size().reset_index(name='count')
-            st.bar_chart(watch_counts.set_index('year'),color="#FF1988")
-        # btn(username="robertmundo", floating=False, width=100)\
-        df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
-        
-        st.subheader("Chat with your Data!")
-        st.badge("AI",icon='🤖',color="violet",width='stretch')
-        
-        agent=createDocumentAgent(df)
-        # agent = create_pandas_dataframe_agent(llm, df, allow_dangerous_code=True,verbose=False)
+                df["Date"]=pd.to_datetime(df["Date"])
+                print(df["Date"])
+                df=df[(df['isAd']==False) & (df["isPost"]==False)]
+                if doExperimental==True:
+                # --- Group and Aggregate ---
+                    st.subheader(f"Total Hours Watched per {view_mode} (Shorts + Regular)")
 
-        user_input = st.text_input("Ask About Your Watch History",placeholder="Enter question")
+                    if view_mode == "Month":
+                        df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                        # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
+                        # watch_counts = watch_counts.sort_values('month')
+                        watch_time = (
+                df.groupby('month')['Duration']
+                .sum()
+                .rename("watchTotal")
+            )
+                        print(watch_time)
+                        st.bar_chart((watch_time/3600),color="#C054FA")  # can also use .bar_chart()
+                    else:
+                        df['year'] = df['Date'].dt.year
+                        # df['year'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                        # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
+                        # watch_counts = watch_counts.sort_values('month')
+                        watch_time = (
+                df.groupby('year')['Duration']
+                .sum()
+                .rename("watchTotal")
+            )
+                        print(watch_counts)
+                        st.bar_chart((watch_time/3600),color="#C054FA")  # can also use .bar_chart()
 
-        if user_input:
-            with st.spinner("Thinking..."):
+
+            df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            # df.to_csv("savedHistyo.csv",index=False)
+            df["Date"]=pd.to_datetime(df["Date"])
+            timeWatched=0
+            isShort=[]
+            for t in df["Duration"]:
+                if t!=0 and t<55:
+                    isShort.append(True)
+                else:
+                    isShort.append(False)
+                timeWatched+=t
+            df['isShort']=isShort
+
+            df=df[(df['isAd']==False) & (df["isPost"]==False)]
+
+            # --- Group and Aggregate ---
+            if doExperimental==True:
+                with st.container(border=True):
+
+                    st.subheader(f"Hours of Short Videos Watched per {view_mode}")
+
+                    if view_mode == "Month":
+                        df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                        # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
+                        # watch_counts = watch_counts.sort_values('month')
+                        watch_time = (
+                df[df['isShort']==True].groupby('month')['Duration']
+                .sum()
+                .rename("watchTotal")
+            )
+                        print(watch_time)
+                        st.bar_chart((watch_time/3600),color="#54FAE9")  # can also use .bar_chart()
+                    else:
+                        df['year'] = df['Date'].dt.year
+                        # df['year'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                        # watch_counts = df.groupby(['month','isAd']).size().reset_index(name='count')
+                        # watch_counts = watch_counts.sort_values('month')
+                        watch_time = (
+                df[df['isShort']==True].groupby('year')['Duration']
+                .sum()
+                .rename("watchTotal")
+            )
+                        print(watch_counts)
+                        st.bar_chart((watch_time/3600),color="#54FAE9")  # can also use .bar_chart()
+
+            # df2=df.copy()
+        elif tabControl=="Comments":
+
+            st.markdown('---')
+            st.header("Comments")
+            df2 = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            # df.to_csv("savedHistyo.csv",index=False)
+            df2["Date"]=pd.to_datetime(df2["Date"])
+            timeWatched=0
+            isShort=[]
+            for t in df2["Duration"]:
+                if t!=0 and t<55:
+                    isShort.append(True)
+                else:
+                    isShort.append(False)
+                timeWatched+=t
+            df2['isShort']=isShort
+
+            df2=df2[(df2['isAd']==False) & (df2["isPost"]==False)]
+            df = st.session_state.comments[(st.session_state.comments["Date"].dt.date >= pd.to_datetime(start_date).date()) & (st.session_state.comments["Date"].dt.date <= pd.to_datetime(end_date).date())]
+            compCols=st.columns(2)
+            rate=(len(df)/len(df2))*100
+            per=100
+            if rate <1:
+                rate = (len(df)/len(df2))*1000
+                per=1000
+            if rate <1:
+                rate = (len(df)/len(df2))*10000
+                per=10000
+            with st.container(border=True):
+
+                with compCols[0]:
+                    ui.metric_card("Total Comments Left",f"{len(df)}")
+                with compCols[1]:
+                    ui.metric_card("Comment Frequency",f"{int(rate)} comments per {per} videos")
+            with st.container(border=True):
+
+                st.subheader(f"Comments left per {view_mode}")
+                # df = st.session_state.comments[(st.session_state.comments["Date"].dt.date >= pd.to_datetime(start_date).date()) & (st.session_state.comments["Date"].dt.date <= pd.to_datetime(end_date).date())]
+                df["Date"]=pd.to_datetime(df["Date"])
+                if view_mode == "Month":
+                    df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                    watch_counts = df.groupby(['month']).size().reset_index(name='count')
+                    watch_counts = watch_counts.sort_values('month')
+                    print(watch_counts)
+                    st.bar_chart(watch_counts.set_index('month'),color="#61256F")  # can also use .bar_chart() 
+                else:
+                    df['year'] = df['Date'].dt.year
+                    watch_counts = df.groupby(['year']).size().reset_index(name='count')
+                    st.bar_chart(watch_counts.set_index('year'),color="#61256F")
+
+            def extract_text(entry):
                 try:
-                    response = agent.run(user_input)
-                    st.session_state.chat_history.append(("You", user_input))
-                    st.session_state.chat_history.append(("WatchBot", response))
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                    data = ast.literal_eval(entry)  # Safely convert string to dict
+                    return data.get("text", "")  # Remove asterisks
+                except:
+                    return ""
 
-        # Display chat history
-        for sender, message in st.session_state.chat_history:
-            st.markdown(f"**{sender}:** {message}")
+            df['clean_text'] = df['Comment Text'].apply(extract_text)
+            with st.container(border=True):
+
+                st.subheader('Comments Word Cloud')
+                # Step 2: Create a word cloud
+                all_text = ' '.join(df['clean_text'].dropna())
+                wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_text)
+
+                plt.figure(figsize=(10, 5))
+                plt.imshow(wordcloud, interpolation='bilinear')
+                plt.axis('off')
+                plt.title("Word Cloud of Comments")
+                st.pyplot(plt.gcf())
+                # plt.show()
+
+            # Step 3: Sentiment analysis using TextBlob
+            def get_sentiment(text):
+                return TextBlob(text).sentiment.polarity  # Range: -1 (negative) to 1 (positive)
+            with st.container(border=True):
+
+                st.subheader(f'Average Sentiment of Comments per {view_mode}')
+                st.caption("Negative Sentiment indicate meaner comments, positive indicates not as mean comments")
+                df['sentiment'] = df['clean_text'].apply(get_sentiment)
+                if view_mode == "Month":
+                    df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                    watch_counts = df.groupby(['month'])['sentiment'].mean().reset_index(name='count')
+                    watch_counts = watch_counts.sort_values('month')
+                    # print(watch_counts)
+                    st.bar_chart(watch_counts.set_index('month'),color="#C4ED3B")  # can also use .bar_chart() 
+                else:
+                    df['year'] = df['Date'].dt.year
+                    watch_counts = df.groupby(['year'])['sentiment'].mean().reset_index(name='count')
+                    st.bar_chart(watch_counts.set_index('year'),color="#C4ED3B")
+        elif tabControl=="Subsctripions & Playlists":
+            st.markdown('---')
+
+                # st.subheader(f"Total Number of Subscriptions: {len(st.session_state['subs'])}")
+            st.header("Playlists & Subscriptions")
+            with st.container(border=True):
+
+                stats=st.columns(3)
+                with stats[0]:
+                    ui.metric_card("Total Number of Subscriptions",f"{len(st.session_state['subs'])}")
+                with stats[1]:
+                    ui.metric_card(f"Total Number of Playlists", f"{(len(st.session_state['Playlists']))}")
+                # st.subheader(f"Total Number of Playlists {(len(st.session_state['Playlists']))}")
+                with stats[2]:
+                    ui.metric_card(f"Total Videos in All Playlists",f"{len(st.session_state['all_lists'])}")
+                # st.subheader(f'Total Videos in All Playlists {len(st.session_state["all_lists"])}')
+            lengths=[]
+            i=0
+
+            for x in st.session_state['list_names']:
+                # if x ==st.session_state['list_names'][0]:
+                #     i+=1
+                #     continue
+                # else:
+                lengths.append(len(st.session_state['Playlists'][i]))
+                i+=1
+            with st.container(border=True):
+
+                st.subheader("Videos per Playlist")
+                st.session_state['list_names']=[g.replace("Takeout/YouTube and YouTube Music/playlists/","") for g in st.session_state['list_names']]
+                st.bar_chart(pd.DataFrame({"Playlist":st.session_state['list_names'],'Number of Videos':lengths}),x='Playlist',y='Number of Videos',color="#4DD799")
+            
+            df=st.session_state['all_lists']
+            # df = st.session_state.history[((pd.to_datetime(stjj.session_state['all_lists']["Playlist Video Creation Timestamp"])).dt.to_period('M').dt.to_timestamp() >= pd.to_datetime(start_date).date()) & (pd.to_datetime(st.session_state['all_lists']["Playlist Video Creation Timestamp"]) <= pd.to_datetime(end_date).date())]
+
+            df["Date"]=pd.to_datetime(df['Playlist Video Creation Timestamp'])
+            df["Date2"]=df["Date"].dt.date
+            df=df[(df["Date2"]>=pd.to_datetime(start_date).date()) & (df["Date2"]<=pd.to_datetime(end_date).date())]
+            # print(df["month"])
+            with st.container(border=True):
+
+                st.subheader("Videos Added to Playlist per Month")
+                if view_mode == "Month":
+                    df['month'] = df['Date'].dt.to_period('M').dt.to_timestamp()  # first day of each month
+                    watch_counts = df.groupby(['month']).size().reset_index(name='count')
+                    watch_counts = watch_counts.sort_values('month')
+                    # print(watch_counts)
+                    st.bar_chart(watch_counts.set_index('month'),color="#FF1988")  # can also use .bar_chart() 
+                else:
+                    df['year'] = df['Date'].dt.year
+                    watch_counts = df.groupby(['year']).size().reset_index(name='count')
+                    st.bar_chart(watch_counts.set_index('year'),color="#FF1988")
+      
+                # btn(username="robertmundo", floating=False, width=100)\
+        elif tabControl=="AI":
+            df = st.session_state.history[(st.session_state.history["Date"] >= pd.to_datetime(start_date).date()) & (st.session_state.history["Date"] <= pd.to_datetime(end_date).date())]
+            st.markdown('---')
+
+            with st.container(border=True):
+
+                st.subheader("Chat with your Data!")
+                st.badge("AI",icon='🤖',color="violet",width='stretch')
+                
+                agent=createDocumentAgent(df)
+                # agent = create_pandas_dataframe_agent(llm, df, allow_dangerous_code=True,verbose=False)
+
+                user_input = st.text_input("Ask About Your Watch History",placeholder="Enter question")
+
+                if user_input:
+                    with st.spinner("Thinking..."):
+                        try:
+                            response = agent.run(user_input)
+                            st.session_state.chat_history.append(("You", user_input))
+                            st.session_state.chat_history.append(("WatchBot", response))
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+
+                # Display chat history
+                for sender, message in st.session_state.chat_history:
+                    st.markdown(f"**{sender}:** {message}")
 
     footer="""<style>
 a:link , a:visited{
