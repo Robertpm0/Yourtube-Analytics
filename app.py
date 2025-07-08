@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect
 import os
-import uuid
 import subprocess
 import time
 TEMP_ZIP_PATH = 'shared_data/uploaded.zip'  # Streamlit will read this
@@ -32,4 +31,4 @@ def open_streamlit():
     return redirect('http://localhost:8501', code=302)
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=False,port=10000)
