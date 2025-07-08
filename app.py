@@ -14,7 +14,7 @@ def upload_file():
             # Save zip to shared_data/uploaded.zip
             os.makedirs("shared_data", exist_ok=True)
             file.save(TEMP_ZIP_PATH)
-            time.sleep(10)
+            # time.sleep(10)
             # Redirect to Streamlit app
             return redirect('/analysis')
 
@@ -27,7 +27,7 @@ def open_streamlit():
         ["streamlit", "run", "main.py", "--server.headless", "true"],
         cwd=os.getcwd()
     )
-    # time.sleep(20)
+    time.sleep(35)
     return redirect('http://localhost:8501', code=302)
 
 if __name__ == '__main__':
